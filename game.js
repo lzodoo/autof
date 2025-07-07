@@ -34,7 +34,7 @@ const input = {
 
 // 伤害数字类
 class DamageText {
-    constructor(x, y, damage, color = '#ff6b6b') {
+    constructor(x, y, damage, color = '#ff4466') {
         this.x = x;
         this.y = y;
         this.damage = Math.round(damage);
@@ -104,7 +104,7 @@ class Player {
         this.exp = 0;
         this.expToNext = 100;
         this.speed = 2;
-        this.color = '#4CAF50';
+        this.color = '#0096ff';
     }
 
     update() {
@@ -216,7 +216,7 @@ class Player {
                 this.y + (Math.random() - 0.5) * 40,
                 (Math.random() - 0.5) * 4,
                 (Math.random() - 0.5) * 4,
-                '#FFD700',
+                '#00ffcc',
                 30
             );
             game.particles.push(particle);
@@ -255,7 +255,7 @@ class Player {
         ctx.save();
         
         // 绘制射程范围（半透明）
-        ctx.globalAlpha = 0.1;
+        ctx.globalAlpha = 0.15;
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
@@ -263,36 +263,45 @@ class Player {
         ctx.globalAlpha = 1;
         
         // 绘制玩家光环
-        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size + 10);
-        gradient.addColorStop(0, 'rgba(76, 175, 80, 0.8)');
-        gradient.addColorStop(1, 'rgba(76, 175, 80, 0)');
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size + 15);
+        gradient.addColorStop(0, 'rgba(0, 150, 255, 0.8)');
+        gradient.addColorStop(0.5, 'rgba(0, 200, 255, 0.4)');
+        gradient.addColorStop(1, 'rgba(0, 150, 255, 0)');
         ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size + 10, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.size + 15, 0, Math.PI * 2);
         ctx.fill();
         
         // 绘制玩家主体
         ctx.fillStyle = this.color;
-        ctx.strokeStyle = '#2E7D32';
+        ctx.strokeStyle = '#0066cc';
         ctx.lineWidth = 2;
         ctx.shadowColor = this.color;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 15;
         
         // 绘制玩家（弓箭手）
         ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
         ctx.strokeRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
         
-        // 绘制弓
-        ctx.strokeStyle = '#8B4513';
+        // 绘制能量弓
+        ctx.strokeStyle = '#00ffcc';
         ctx.lineWidth = 3;
-        ctx.shadowColor = '#8B4513';
-        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#00ffcc';
+        ctx.shadowBlur = 10;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size + 5, 0, Math.PI * 2);
         ctx.stroke();
         
+        // 绘制能量核心
+        ctx.fillStyle = '#00ffcc';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+        
         // 绘制眼睛
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = '#00d4ff';
+        ctx.shadowBlur = 8;
         ctx.fillRect(this.x - 3, this.y - 3, 2, 2);
         ctx.fillRect(this.x + 1, this.y - 3, 2, 2);
         
@@ -308,7 +317,7 @@ class Arrow {
         this.damage = damage;
         this.speed = 8;
         this.size = 3;
-        this.color = '#8B4513';
+        this.color = '#00ffcc';
         
         // 计算方向
         const dx = targetX - x;
@@ -337,29 +346,39 @@ class Arrow {
     draw() {
         ctx.save();
         
-        // 绘制弓箭轨迹
-        ctx.strokeStyle = 'rgba(139, 69, 19, 0.3)';
-        ctx.lineWidth = 2;
+        // 绘制能量轨迹
+        ctx.strokeStyle = 'rgba(0, 255, 204, 0.6)';
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(this.x - this.vx * 3, this.y - this.vy * 3);
+        ctx.moveTo(this.x - this.vx * 5, this.y - this.vy * 5);
         ctx.lineTo(this.x, this.y);
         ctx.stroke();
         
-        // 绘制箭头主体
+        // 绘制能量光晕
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 8);
+        gradient.addColorStop(0, 'rgba(0, 255, 204, 0.8)');
+        gradient.addColorStop(0.5, 'rgba(0, 150, 255, 0.4)');
+        gradient.addColorStop(1, 'rgba(0, 255, 204, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 绘制能量箭头
         ctx.fillStyle = this.color;
-        ctx.strokeStyle = '#654321';
+        ctx.strokeStyle = '#0096ff';
         ctx.lineWidth = 1;
         ctx.shadowColor = this.color;
-        ctx.shadowBlur = 5;
+        ctx.shadowBlur = 10;
         
         // 绘制箭头
         const angle = Math.atan2(this.vy, this.vx);
         ctx.translate(this.x, this.y);
         ctx.rotate(angle);
         
-        // 箭身
+        // 能量箭身
         ctx.fillRect(-8, -1, 16, 2);
-        // 箭头
+        // 能量箭头
         ctx.beginPath();
         ctx.moveTo(8, 0);
         ctx.lineTo(4, -3);
@@ -367,15 +386,22 @@ class Arrow {
         ctx.closePath();
         ctx.fill();
         
-        // 箭羽
-        ctx.strokeStyle = '#8B4513';
-        ctx.lineWidth = 1;
+        // 能量尾翼
+        ctx.strokeStyle = '#00ffcc';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(-8, -2);
         ctx.lineTo(-6, -3);
         ctx.moveTo(-8, 2);
         ctx.lineTo(-6, 3);
         ctx.stroke();
+        
+        // 绘制能量核心
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(0, 0, 1, 0, Math.PI * 2);
+        ctx.fill();
         
         ctx.restore();
     }
@@ -391,7 +417,8 @@ class Enemy {
         this.hp = this.maxHp;
         this.speed = 0.5 + Math.random() * 1.5;
         this.damage = 10 + Math.random() * 10;
-        this.color = `hsl(${Math.random() * 60}, 70%, 50%)`;
+        // 使用红色到紫色的对比色调
+        this.color = `hsl(${300 + Math.random() * 60}, 70%, 50%)`;
         this.lastDamageTime = 0;
         this.expValue = Math.floor(this.maxHp / 5);
     }
@@ -459,6 +486,19 @@ class Enemy {
                 (Math.random() - 0.5) * 6,
                 this.color,
                 20
+            );
+            game.particles.push(particle);
+        }
+        
+        // 添加蓝色爆炸效果
+        for (let i = 0; i < 5; i++) {
+            const particle = new Particle(
+                this.x + (Math.random() - 0.5) * 15,
+                this.y + (Math.random() - 0.5) * 15,
+                (Math.random() - 0.5) * 8,
+                (Math.random() - 0.5) * 8,
+                '#0096ff',
+                25
             );
             game.particles.push(particle);
         }
@@ -558,27 +598,27 @@ class Item {
     setTypeProperties() {
         switch (this.type) {
             case 'attack':
-                this.color = '#ff4444';
+                this.color = '#0096ff';
                 this.name = '攻击力';
                 this.value = 3 + Math.random() * 5;
                 break;
             case 'speed':
-                this.color = '#4444ff';
+                this.color = '#00ccff';
                 this.name = '移速';
                 this.value = 0.3 + Math.random() * 0.5;
                 break;
             case 'range':
-                this.color = '#44ff44';
+                this.color = '#00ffcc';
                 this.name = '射程';
                 this.value = 15 + Math.random() * 20;
                 break;
             case 'heal':
-                this.color = '#ff44ff';
+                this.color = '#0088ff';
                 this.name = '治疗';
                 this.value = 20 + Math.random() * 30;
                 break;
             case 'attackSpeed':
-                this.color = '#ffff44';
+                this.color = '#44ddff';
                 this.name = '攻速';
                 this.value = 0.1 + Math.random() * 0.2;
                 break;
@@ -638,13 +678,40 @@ class Item {
             );
             game.particles.push(particle);
         }
+        
+        // 添加白色闪光效果
+        for (let i = 0; i < 3; i++) {
+            const particle = new Particle(
+                this.x + (Math.random() - 0.5) * 10,
+                this.y + (Math.random() - 0.5) * 10,
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 2,
+                '#ffffff',
+                15
+            );
+            game.particles.push(particle);
+        }
     }
 
     draw() {
         ctx.save();
+        
+        // 绘制道具光环
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size + 8);
+        gradient.addColorStop(0, this.color + '80');
+        gradient.addColorStop(0.5, this.color + '40');
+        gradient.addColorStop(1, this.color + '00');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size + 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 绘制道具主体
         ctx.fillStyle = this.color;
-        ctx.strokeStyle = '#fff';
+        ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 10;
         
         // 绘制道具
         ctx.beginPath();
@@ -652,10 +719,17 @@ class Item {
         ctx.fill();
         ctx.stroke();
         
+        // 绘制能量核心
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+        
         // 绘制拾取范围（半透明）
         ctx.strokeStyle = this.color;
         ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.3;
+        ctx.globalAlpha = 0.2;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.pickupRadius, 0, Math.PI * 2);
         ctx.stroke();
