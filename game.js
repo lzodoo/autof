@@ -3,7 +3,8 @@ const gameState = {
     isRunning: false,
     isPaused: false,
     startTime: 0,
-    lastUpdateTime: 0
+    lastUpdateTime: 0,
+    shake: { x: 0, y: 0, intensity: 0, duration: 0 }
 };
 
 // 获取canvas和上下文
@@ -17,12 +18,76 @@ const game = {
     enemies: [],
     items: [],
     particles: [],
+    damageTexts: [],
     lastEnemySpawn: 0,
     lastArrowShoot: 0,
     enemySpawnRate: 2000, // 每2秒生成一个敌人
     gameTime: 0,
     kills: 0
 };
+
+// 输入状态
+const input = {
+    keys: {},
+    mouse: { x: 0, y: 0 }
+};
+
+// 伤害数字类
+class DamageText {
+    constructor(x, y, damage, color = '#ff6b6b') {
+        this.x = x;
+        this.y = y;
+        this.damage = Math.round(damage);
+        this.color = color;
+        this.life = 60;
+        this.maxLife = 60;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = -2 - Math.random() * 2;
+        this.alpha = 1;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.05; // 重力
+        this.life--;
+        this.alpha = this.life / this.maxLife;
+        
+        return this.life > 0;
+    }
+
+    draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.font = 'bold 16px Orbitron';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 10;
+        ctx.fillText('-' + this.damage, this.x, this.y);
+        ctx.restore();
+    }
+}
+
+// 屏幕震动效果
+function shakeScreen(intensity, duration) {
+    gameState.shake.intensity = intensity;
+    gameState.shake.duration = duration;
+}
+
+// 更新屏幕震动
+function updateShake() {
+    if (gameState.shake.duration > 0) {
+        gameState.shake.x = (Math.random() - 0.5) * gameState.shake.intensity;
+        gameState.shake.y = (Math.random() - 0.5) * gameState.shake.intensity;
+        gameState.shake.duration--;
+    } else {
+        gameState.shake.x = 0;
+        gameState.shake.y = 0;
+        gameState.shake.intensity = 0;
+    }
+}
 
 // 玩家类
 class Player {
@@ -43,19 +108,35 @@ class Player {
     }
 
     update() {
-        // 玩家移动（跟随鼠标）
-        const rect = canvas.getBoundingClientRect();
-        if (window.mouseX !== undefined && window.mouseY !== undefined) {
-            const targetX = window.mouseX - rect.left;
-            const targetY = window.mouseY - rect.top;
-            
-            const dx = targetX - this.x;
-            const dy = targetY - this.y;
-            const distance = Math.sqrt(dx*dx + dy*dy);
-            
-            if (distance > 5) {
-                this.x += (dx / distance) * this.speed;
-                this.y += (dy / distance) * this.speed;
+        // 键盘移动
+        let moveX = 0;
+        let moveY = 0;
+        
+        if (input.keys['KeyW'] || input.keys['ArrowUp']) moveY -= 1;
+        if (input.keys['KeyS'] || input.keys['ArrowDown']) moveY += 1;
+        if (input.keys['KeyA'] || input.keys['ArrowLeft']) moveX -= 1;
+        if (input.keys['KeyD'] || input.keys['ArrowRight']) moveX += 1;
+        
+        // 如果有键盘输入，优先使用键盘移动
+        if (moveX !== 0 || moveY !== 0) {
+            const length = Math.sqrt(moveX * moveX + moveY * moveY);
+            this.x += (moveX / length) * this.speed;
+            this.y += (moveY / length) * this.speed;
+        } else {
+            // 否则使用鼠标移动
+            const rect = canvas.getBoundingClientRect();
+            if (input.mouse.x !== undefined && input.mouse.y !== undefined) {
+                const targetX = input.mouse.x - rect.left;
+                const targetY = input.mouse.y - rect.top;
+                
+                const dx = targetX - this.x;
+                const dy = targetY - this.y;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance > 5) {
+                    this.x += (dx / distance) * this.speed;
+                    this.y += (dy / distance) * this.speed;
+                }
             }
         }
 
@@ -140,6 +221,29 @@ class Player {
             );
             game.particles.push(particle);
         }
+        
+        // 显示升级文本
+        const levelUpText = document.createElement('div');
+        levelUpText.className = 'level-up-text';
+        levelUpText.textContent = `LEVEL UP! ${this.level}`;
+        levelUpText.style.left = (this.x - 50) + 'px';
+        levelUpText.style.top = (this.y - 50) + 'px';
+        document.getElementById('gameContainer').appendChild(levelUpText);
+        
+        // 动画效果
+        setTimeout(() => {
+            levelUpText.style.transform = 'translateY(-30px)';
+            levelUpText.style.opacity = '0';
+        }, 100);
+        
+        setTimeout(() => {
+            if (levelUpText.parentNode) {
+                levelUpText.parentNode.removeChild(levelUpText);
+            }
+        }, 1500);
+        
+        // 屏幕震动
+        shakeScreen(5, 10);
     }
 
     die() {
@@ -149,9 +253,30 @@ class Player {
 
     draw() {
         ctx.save();
+        
+        // 绘制射程范围（半透明）
+        ctx.globalAlpha = 0.1;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        
+        // 绘制玩家光环
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size + 10);
+        gradient.addColorStop(0, 'rgba(76, 175, 80, 0.8)');
+        gradient.addColorStop(1, 'rgba(76, 175, 80, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size + 10, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 绘制玩家主体
         ctx.fillStyle = this.color;
         ctx.strokeStyle = '#2E7D32';
         ctx.lineWidth = 2;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 10;
         
         // 绘制玩家（弓箭手）
         ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
@@ -160,9 +285,16 @@ class Player {
         // 绘制弓
         ctx.strokeStyle = '#8B4513';
         ctx.lineWidth = 3;
+        ctx.shadowColor = '#8B4513';
+        ctx.shadowBlur = 5;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size + 5, 0, Math.PI * 2);
         ctx.stroke();
+        
+        // 绘制眼睛
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(this.x - 3, this.y - 3, 2, 2);
+        ctx.fillRect(this.x + 1, this.y - 3, 2, 2);
         
         ctx.restore();
     }
@@ -204,9 +336,21 @@ class Arrow {
 
     draw() {
         ctx.save();
+        
+        // 绘制弓箭轨迹
+        ctx.strokeStyle = 'rgba(139, 69, 19, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(this.x - this.vx * 3, this.y - this.vy * 3);
+        ctx.lineTo(this.x, this.y);
+        ctx.stroke();
+        
+        // 绘制箭头主体
         ctx.fillStyle = this.color;
         ctx.strokeStyle = '#654321';
         ctx.lineWidth = 1;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 5;
         
         // 绘制箭头
         const angle = Math.atan2(this.vy, this.vx);
@@ -222,6 +366,16 @@ class Arrow {
         ctx.lineTo(4, 3);
         ctx.closePath();
         ctx.fill();
+        
+        // 箭羽
+        ctx.strokeStyle = '#8B4513';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-8, -2);
+        ctx.lineTo(-6, -3);
+        ctx.moveTo(-8, 2);
+        ctx.lineTo(-6, 3);
+        ctx.stroke();
         
         ctx.restore();
     }
@@ -267,6 +421,14 @@ class Enemy {
 
     takeDamage(damage) {
         this.hp -= damage;
+        
+        // 显示伤害数字
+        const damageText = new DamageText(this.x, this.y - 20, damage);
+        game.damageTexts.push(damageText);
+        
+        // 屏幕震动
+        shakeScreen(2, 3);
+        
         if (this.hp <= 0) {
             this.die();
             return false;
@@ -304,9 +466,30 @@ class Enemy {
 
     draw() {
         ctx.save();
+        
+        // 绘制敌人阴影
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(this.x + 2, this.y + 2, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        
+        // 绘制敌人光环
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size + 5);
+        gradient.addColorStop(0, this.color + '80');
+        gradient.addColorStop(1, this.color + '00');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size + 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 绘制敌人主体
         ctx.fillStyle = this.color;
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 8;
         
         // 绘制敌人
         ctx.beginPath();
@@ -314,17 +497,41 @@ class Enemy {
         ctx.fill();
         ctx.stroke();
         
-        // 绘制血条
+        // 绘制敌人特征（眼睛）
+        ctx.fillStyle = '#ff0000';
+        ctx.beginPath();
+        ctx.arc(this.x - this.size/3, this.y - this.size/3, 2, 0, Math.PI * 2);
+        ctx.arc(this.x + this.size/3, this.y - this.size/3, 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 绘制血条背景
         const barWidth = this.size * 2;
-        const barHeight = 4;
+        const barHeight = 6;
         const barX = this.x - barWidth / 2;
-        const barY = this.y - this.size - 10;
+        const barY = this.y - this.size - 15;
         
-        ctx.fillStyle = '#333';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(barX, barY, barWidth, barHeight);
+        ctx.strokeRect(barX, barY, barWidth, barHeight);
         
-        ctx.fillStyle = '#ff4444';
-        ctx.fillRect(barX, barY, (this.hp / this.maxHp) * barWidth, barHeight);
+        // 绘制血条
+        const healthPercent = this.hp / this.maxHp;
+        const healthGradient = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+        if (healthPercent > 0.6) {
+            healthGradient.addColorStop(0, '#44ff44');
+            healthGradient.addColorStop(1, '#66ff66');
+        } else if (healthPercent > 0.3) {
+            healthGradient.addColorStop(0, '#ffff44');
+            healthGradient.addColorStop(1, '#ffff66');
+        } else {
+            healthGradient.addColorStop(0, '#ff4444');
+            healthGradient.addColorStop(1, '#ff6666');
+        }
+        
+        ctx.fillStyle = healthGradient;
+        ctx.fillRect(barX, barY, healthPercent * barWidth, barHeight);
         
         ctx.restore();
     }
@@ -556,7 +763,9 @@ function checkCollisions() {
 function updateUI() {
     document.getElementById('level').textContent = game.player.level;
     document.getElementById('exp').textContent = game.player.exp;
+    document.getElementById('expMax').textContent = game.player.expToNext;
     document.getElementById('hp').textContent = game.player.hp;
+    document.getElementById('maxHp').textContent = game.player.maxHp;
     document.getElementById('attack').textContent = Math.round(game.player.attack);
     document.getElementById('attackSpeed').textContent = game.player.attackSpeed.toFixed(1);
     document.getElementById('range').textContent = Math.round(game.player.range);
@@ -569,6 +778,10 @@ function updateUI() {
     
     document.getElementById('hpFill').style.width = hpPercent + '%';
     document.getElementById('expFill').style.width = expPercent + '%';
+    
+    // 更新暂停按钮文本
+    const pauseBtn = document.getElementById('pauseBtn');
+    pauseBtn.textContent = gameState.isPaused ? '继续' : '暂停';
 }
 
 // 游戏主循环
@@ -580,8 +793,15 @@ function gameLoop() {
     gameState.lastUpdateTime = now;
     game.gameTime = now - gameState.startTime;
     
-    // 清空画布
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 如果游戏暂停，只绘制不更新
+    if (gameState.isPaused) {
+        drawGame();
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+    
+    // 更新屏幕震动
+    updateShake();
     
     // 更新游戏对象
     game.player.update();
@@ -614,11 +834,36 @@ function gameLoop() {
         }
     }
     
+    // 更新伤害数字
+    for (let i = game.damageTexts.length - 1; i >= 0; i--) {
+        if (!game.damageTexts[i].update()) {
+            game.damageTexts.splice(i, 1);
+        }
+    }
+    
     // 生成敌人
     spawnEnemy();
     
     // 碰撞检测
     checkCollisions();
+    
+    // 绘制游戏
+    drawGame();
+    
+    // 更新UI
+    updateUI();
+    
+    requestAnimationFrame(gameLoop);
+}
+
+// 绘制游戏
+function drawGame() {
+    // 清空画布
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 应用屏幕震动
+    ctx.save();
+    ctx.translate(gameState.shake.x, gameState.shake.y);
     
     // 绘制所有对象
     game.particles.forEach(particle => particle.draw());
@@ -626,11 +871,26 @@ function gameLoop() {
     game.enemies.forEach(enemy => enemy.draw());
     game.arrows.forEach(arrow => arrow.draw());
     game.player.draw();
+    game.damageTexts.forEach(damageText => damageText.draw());
     
-    // 更新UI
-    updateUI();
+    // 如果游戏暂停，绘制暂停提示
+    if (gameState.isPaused) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(-gameState.shake.x, -gameState.shake.y, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 48px Orbitron';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#4299e1';
+        ctx.shadowBlur = 20;
+        ctx.fillText('游戏暂停', canvas.width/2 - gameState.shake.x, canvas.height/2 - gameState.shake.y);
+        
+        ctx.font = '24px Rajdhani';
+        ctx.fillText('按空格键继续', canvas.width/2 - gameState.shake.x, canvas.height/2 + 60 - gameState.shake.y);
+    }
     
-    requestAnimationFrame(gameLoop);
+    ctx.restore();
 }
 
 // 初始化游戏
@@ -640,6 +900,7 @@ function initGame() {
     game.enemies = [];
     game.items = [];
     game.particles = [];
+    game.damageTexts = [];
     game.kills = 0;
     game.gameTime = 0;
     game.lastEnemySpawn = 0;
@@ -647,8 +908,10 @@ function initGame() {
     game.enemySpawnRate = 2000;
     
     gameState.isRunning = true;
+    gameState.isPaused = false;
     gameState.startTime = Date.now();
     gameState.lastUpdateTime = Date.now();
+    gameState.shake = { x: 0, y: 0, intensity: 0, duration: 0 };
     
     document.getElementById('gameOver').style.display = 'none';
 }
@@ -657,19 +920,48 @@ function initGame() {
 function showGameOver() {
     document.getElementById('finalKills').textContent = game.kills;
     document.getElementById('finalTime').textContent = Math.floor(game.gameTime / 1000);
+    document.getElementById('finalLevel').textContent = game.player.level;
     document.getElementById('gameOver').style.display = 'block';
 }
 
+// 暂停/继续游戏
+function togglePause() {
+    gameState.isPaused = !gameState.isPaused;
+}
+
+// 键盘事件监听
+document.addEventListener('keydown', (e) => {
+    input.keys[e.code] = true;
+    
+    // 空格键暂停/继续
+    if (e.code === 'Space') {
+        e.preventDefault();
+        togglePause();
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    input.keys[e.code] = false;
+});
+
 // 鼠标移动事件
 canvas.addEventListener('mousemove', (e) => {
-    window.mouseX = e.clientX;
-    window.mouseY = e.clientY;
+    input.mouse.x = e.clientX;
+    input.mouse.y = e.clientY;
 });
+
+// 暂停按钮
+document.getElementById('pauseBtn').addEventListener('click', togglePause);
 
 // 重新开始按钮
 document.getElementById('restartBtn').addEventListener('click', () => {
     initGame();
     gameLoop();
+});
+
+// 防止右键菜单
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
 });
 
 // 开始游戏
