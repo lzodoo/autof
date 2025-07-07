@@ -86,6 +86,31 @@
             font-weight: 600;
             text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
             z-index: 100;
+            max-width: 280px;
+        }
+
+        #rightUI {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            color: #00d4ff;
+            font-size: 14px;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+            z-index: 100;
+            max-width: 250px;
+        }
+
+        #bottomUI {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            color: #00d4ff;
+            font-size: 14px;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+            z-index: 100;
+            max-width: 200px;
         }
 
         #gameOver {
@@ -281,12 +306,243 @@
             background-size: 50px 50px;
             pointer-events: none;
         }
+
+        .minimap {
+            width: 150px;
+            height: 100px;
+            background: linear-gradient(135deg, rgba(15, 25, 41, 0.9), rgba(26, 35, 50, 0.9));
+            border: 2px solid rgba(0, 150, 255, 0.4);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .minimap-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .settings-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(15, 25, 41, 0.95), rgba(26, 35, 50, 0.95));
+            color: #00d4ff;
+            padding: 30px;
+            border-radius: 15px;
+            display: none;
+            z-index: 300;
+            border: 2px solid rgba(0, 150, 255, 0.5);
+            box-shadow: 0 0 40px rgba(0, 150, 255, 0.4);
+            backdrop-filter: blur(10px);
+            min-width: 300px;
+        }
+
+        .settings-panel h3 {
+            margin-bottom: 20px;
+            color: #00ffcc;
+            font-family: 'Orbitron', monospace;
+            text-align: center;
+        }
+
+        .setting-item {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .setting-slider {
+            width: 120px;
+            background: rgba(0, 150, 255, 0.2);
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .setting-button {
+            background: rgba(0, 150, 255, 0.3);
+            border: 1px solid rgba(0, 150, 255, 0.5);
+            color: #00d4ff;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .setting-button:hover {
+            background: rgba(0, 150, 255, 0.5);
+        }
+
+        .upgrade-choice {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(15, 25, 41, 0.95), rgba(26, 35, 50, 0.95));
+            color: #00d4ff;
+            padding: 30px;
+            border-radius: 15px;
+            display: none;
+            z-index: 250;
+            border: 2px solid rgba(0, 255, 204, 0.5);
+            box-shadow: 0 0 40px rgba(0, 255, 204, 0.4);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .upgrade-choice h3 {
+            margin-bottom: 20px;
+            color: #00ffcc;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .upgrade-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .upgrade-option {
+            background: rgba(0, 150, 255, 0.2);
+            border: 2px solid rgba(0, 150, 255, 0.4);
+            color: #00d4ff;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .upgrade-option:hover {
+            background: rgba(0, 150, 255, 0.4);
+            border-color: rgba(0, 150, 255, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .upgrade-option .upgrade-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #00ffcc;
+        }
+
+        .upgrade-option .upgrade-desc {
+            font-size: 12px;
+            color: #88ccff;
+        }
+
+        .performance-monitor {
+            font-size: 11px;
+            color: rgba(0, 212, 255, 0.6);
+            margin-top: 5px;
+        }
+
+        .enemy-counter {
+            background: rgba(15, 25, 41, 0.8);
+            border: 1px solid rgba(255, 68, 102, 0.3);
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+
+        .wave-indicator {
+            background: rgba(15, 25, 41, 0.8);
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+
+        .hotkey-hint {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 25, 41, 0.8);
+            border: 1px solid rgba(0, 150, 255, 0.3);
+            border-radius: 8px;
+            padding: 8px 15px;
+            color: rgba(0, 212, 255, 0.7);
+            font-size: 12px;
+            z-index: 100;
+        }
+
+        .notification {
+            position: absolute;
+            top: 80px;
+            right: 15px;
+            background: rgba(15, 25, 41, 0.9);
+            border: 1px solid rgba(0, 150, 255, 0.5);
+            border-radius: 8px;
+            padding: 10px 15px;
+            color: #00d4ff;
+            font-size: 14px;
+            z-index: 200;
+            transform: translateX(300px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .crosshair {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 255, 204, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 150;
+            display: none;
+        }
+
+        .crosshair::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 6px;
+            background: rgba(0, 255, 204, 0.6);
+            border-radius: 50%;
+        }
+
+        @media (max-width: 1000px) {
+            #gameContainer {
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            canvas {
+                width: 100vw;
+                height: 100vh;
+            }
+            
+            #ui, #rightUI, #bottomUI {
+                font-size: 14px;
+            }
+            
+            .stat-bar {
+                padding: 8px;
+                margin-bottom: 8px;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <div class="cyber-grid"></div>
         <canvas id="gameCanvas" width="900" height="700"></canvas>
+        
+        <!-- 主要状态UI -->
         <div id="ui" class="glow">
             <div class="stat-bar">
                 <div>⚡ 等级: <span id="level">1</span> | 经验: <span id="exp">0</span>/<span id="expMax">100</span></div>
@@ -305,14 +561,39 @@
                 <div>🏹 攻速: <span id="attackSpeed">1.0</span>/s</div>
                 <div>🎯 射程: <span id="range">150</span></div>
             </div>
+        </div>
+        
+        <!-- 右侧UI -->
+        <div id="rightUI">
+            <div class="minimap">
+                <canvas class="minimap-canvas" id="minimapCanvas" width="150" height="100"></canvas>
+            </div>
+            <div class="enemy-counter">
+                <div>👹 敌人数量: <span id="enemyCount">0</span></div>
+            </div>
+            <div class="wave-indicator">
+                <div>🌊 波次: <span id="waveNumber">1</span></div>
+                <div>⏰ 下波: <span id="nextWave">30</span>s</div>
+            </div>
+            <div class="performance-monitor">
+                <div>FPS: <span id="fps">60</span></div>
+                <div>对象: <span id="objectCount">0</span></div>
+            </div>
+        </div>
+        
+        <!-- 底部右侧UI -->
+        <div id="bottomUI">
             <div class="stat-bar">
                 <div>💀 击杀数: <span id="kills">0</span></div>
                 <div>⏱️ 存活时间: <span id="time">0</span>s</div>
             </div>
+            <div class="setting-button" id="settingsBtn">⚙️ 设置</div>
         </div>
         
+        <!-- 控制按钮 -->
         <div class="pause-btn" id="pauseBtn">暂停</div>
         
+        <!-- 控制说明 -->
         <div class="controls">
             <div class="controls-item">
                 <div class="key">鼠标</div>
@@ -326,13 +607,71 @@
                 <div class="key">WASD</div>
                 <span>键盘移动</span>
             </div>
+            <div class="controls-item">
+                <div class="key">ESC</div>
+                <span>设置</span>
+            </div>
         </div>
         
+        <!-- 快捷键提示 -->
+        <div class="hotkey-hint">
+            按 ESC 打开设置 | 按 M 切换小地图 | 按 C 显示准星
+        </div>
+        
+        <!-- 准星 -->
+        <div class="crosshair" id="crosshair"></div>
+        
+        <!-- 通知系统 -->
+        <div class="notification" id="notification"></div>
+        
+        <!-- 设置面板 -->
+        <div class="settings-panel" id="settingsPanel">
+            <h3>⚙️ 游戏设置</h3>
+            <div class="setting-item">
+                <span>音效音量:</span>
+                <input type="range" class="setting-slider" id="soundVolume" min="0" max="100" value="50">
+            </div>
+            <div class="setting-item">
+                <span>画质:</span>
+                <select class="setting-button" id="quality">
+                    <option value="high">高</option>
+                    <option value="medium" selected>中</option>
+                    <option value="low">低</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <span>显示FPS:</span>
+                <button class="setting-button" id="showFPS">开启</button>
+            </div>
+            <div class="setting-item">
+                <span>粒子效果:</span>
+                <button class="setting-button" id="particleEffects">开启</button>
+            </div>
+            <div class="setting-item">
+                <span>屏幕震动:</span>
+                <button class="setting-button" id="screenShake">开启</button>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="setting-button" id="closeSettings">关闭</button>
+            </div>
+        </div>
+        
+        <!-- 升级选择面板 -->
+        <div class="upgrade-choice" id="upgradeChoice">
+            <h3>⚡ 选择升级</h3>
+            <p>选择一个属性进行提升：</p>
+            <div class="upgrade-options" id="upgradeOptions">
+                <!-- 动态生成升级选项 -->
+            </div>
+        </div>
+        
+        <!-- 游戏结束面板 -->
         <div id="gameOver">
             <h2>🎮 游戏结束</h2>
             <p>💀 击杀数: <span id="finalKills">0</span></p>
             <p>⏱️ 存活时间: <span id="finalTime">0</span>秒</p>
             <p>⚡ 最终等级: <span id="finalLevel">1</span></p>
+            <p>🌊 最高波次: <span id="finalWave">1</span></p>
             <button id="restartBtn">🔄 重新开始</button>
         </div>
     </div>

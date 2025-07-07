@@ -4,12 +4,34 @@ const gameState = {
     isPaused: false,
     startTime: 0,
     lastUpdateTime: 0,
-    shake: { x: 0, y: 0, intensity: 0, duration: 0 }
+    shake: { x: 0, y: 0, intensity: 0, duration: 0 },
+    wave: 1,
+    nextWaveTime: 30000,
+    lastWaveTime: 0,
+    settings: {
+        showFPS: true,
+        particleEffects: true,
+        screenShake: true,
+        soundVolume: 50,
+        quality: 'medium',
+        showMinimap: true,
+        showCrosshair: false
+    },
+    performance: {
+        fps: 60,
+        frameCount: 0,
+        lastFPSUpdate: 0
+    }
 };
 
 // 获取canvas和上下文
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+// 小地图
+const minimapCanvas = document.getElementById('minimapCanvas');
+const minimapCtx = minimapCanvas.getContext('2d');
+const minimapScale = 0.15;
 
 // 游戏对象
 const game = {
@@ -78,7 +100,7 @@ function shakeScreen(intensity, duration) {
 
 // 更新屏幕震动
 function updateShake() {
-    if (gameState.shake.duration > 0) {
+    if (gameState.settings.screenShake && gameState.shake.duration > 0) {
         gameState.shake.x = (Math.random() - 0.5) * gameState.shake.intensity;
         gameState.shake.y = (Math.random() - 0.5) * gameState.shake.intensity;
         gameState.shake.duration--;
@@ -87,6 +109,159 @@ function updateShake() {
         gameState.shake.y = 0;
         gameState.shake.intensity = 0;
     }
+}
+
+// 通知系统
+function showNotification(message, duration = 3000) {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.classList.add('show');
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, duration);
+}
+
+// 更新小地图
+function updateMinimap() {
+    if (!gameState.settings.showMinimap) return;
+    
+    minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+    
+    // 绘制边框
+    minimapCtx.strokeStyle = 'rgba(0, 150, 255, 0.5)';
+    minimapCtx.lineWidth = 2;
+    minimapCtx.strokeRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+    
+    // 绘制玩家
+    const playerX = game.player.x * minimapScale;
+    const playerY = game.player.y * minimapScale;
+    minimapCtx.fillStyle = '#0096ff';
+    minimapCtx.beginPath();
+    minimapCtx.arc(playerX, playerY, 3, 0, Math.PI * 2);
+    minimapCtx.fill();
+    
+    // 绘制敌人
+    minimapCtx.fillStyle = '#ff4466';
+    game.enemies.forEach(enemy => {
+        const enemyX = enemy.x * minimapScale;
+        const enemyY = enemy.y * minimapScale;
+        minimapCtx.beginPath();
+        minimapCtx.arc(enemyX, enemyY, 2, 0, Math.PI * 2);
+        minimapCtx.fill();
+    });
+    
+    // 绘制道具
+    minimapCtx.fillStyle = '#00ffcc';
+    game.items.forEach(item => {
+        const itemX = item.x * minimapScale;
+        const itemY = item.y * minimapScale;
+        minimapCtx.beginPath();
+        minimapCtx.arc(itemX, itemY, 1.5, 0, Math.PI * 2);
+        minimapCtx.fill();
+    });
+}
+
+// 更新性能监控
+function updatePerformance() {
+    const now = Date.now();
+    gameState.performance.frameCount++;
+    
+    if (now - gameState.performance.lastFPSUpdate > 1000) {
+        gameState.performance.fps = gameState.performance.frameCount;
+        gameState.performance.frameCount = 0;
+        gameState.performance.lastFPSUpdate = now;
+    }
+}
+
+// 更新波次系统
+function updateWave() {
+    const now = Date.now();
+    const timeInWave = now - gameState.lastWaveTime;
+    const timeToNextWave = gameState.nextWaveTime - timeInWave;
+    
+    if (timeToNextWave <= 0) {
+        gameState.wave++;
+        gameState.lastWaveTime = now;
+        showNotification(`🌊 第 ${gameState.wave} 波来袭！`, 2000);
+        
+        // 增加难度
+        game.enemySpawnRate = Math.max(300, 2000 - gameState.wave * 100);
+    }
+}
+
+// 升级选择系统
+function showUpgradeChoice() {
+    gameState.isPaused = true;
+    const upgradePanel = document.getElementById('upgradeChoice');
+    const upgradeOptions = document.getElementById('upgradeOptions');
+    
+    const upgrades = [
+        {
+            name: '⚔️ 攻击力',
+            desc: '+5 攻击力',
+            apply: () => game.player.attack += 5
+        },
+        {
+            name: '🏹 攻击速度',
+            desc: '+0.2 攻速',
+            apply: () => game.player.attackSpeed += 0.2
+        },
+        {
+            name: '🎯 射程',
+            desc: '+20 射程',
+            apply: () => game.player.range += 20
+        },
+        {
+            name: '❤️ 生命值',
+            desc: '+20 最大生命值',
+            apply: () => {
+                game.player.maxHp += 20;
+                game.player.hp = game.player.maxHp;
+            }
+        },
+        {
+            name: '💨 移动速度',
+            desc: '+0.5 移速',
+            apply: () => game.player.speed += 0.5
+        }
+    ];
+    
+    // 随机选择3个升级选项
+    const selectedUpgrades = [];
+    while (selectedUpgrades.length < 3) {
+        const upgrade = upgrades[Math.floor(Math.random() * upgrades.length)];
+        if (!selectedUpgrades.includes(upgrade)) {
+            selectedUpgrades.push(upgrade);
+        }
+    }
+    
+    upgradeOptions.innerHTML = '';
+    selectedUpgrades.forEach((upgrade, index) => {
+        const option = document.createElement('div');
+        option.className = 'upgrade-option';
+        option.innerHTML = `
+            <div class="upgrade-title">${upgrade.name}</div>
+            <div class="upgrade-desc">${upgrade.desc}</div>
+        `;
+        option.addEventListener('click', () => {
+            upgrade.apply();
+            upgradePanel.style.display = 'none';
+            gameState.isPaused = false;
+            showNotification(`获得升级: ${upgrade.name}`, 2000);
+        });
+        upgradeOptions.appendChild(option);
+    });
+    
+    upgradePanel.style.display = 'block';
+}
+
+// 切换设置面板
+function toggleSettings() {
+    const panel = document.getElementById('settingsPanel');
+    const isVisible = panel.style.display === 'block';
+    panel.style.display = isVisible ? 'none' : 'block';
+    gameState.isPaused = !isVisible;
 }
 
 // 玩家类
@@ -193,33 +368,26 @@ class Player {
         this.exp = 0;
         this.expToNext = this.level * 100;
         
-        // 随机提升属性
-        const upgrades = [
-            () => { this.attack += 5; },
-            () => { this.attackSpeed += 0.2; },
-            () => { this.range += 20; },
-            () => { this.maxHp += 20; this.hp = this.maxHp; },
-            () => { this.speed += 0.5; }
-        ];
-        
-        const randomUpgrade = upgrades[Math.floor(Math.random() * upgrades.length)];
-        randomUpgrade();
-        
         // 创建升级特效
         this.createLevelUpEffect();
+        
+        // 显示升级选择界面
+        showUpgradeChoice();
     }
 
     createLevelUpEffect() {
-        for (let i = 0; i < 20; i++) {
-            const particle = new Particle(
-                this.x + (Math.random() - 0.5) * 40,
-                this.y + (Math.random() - 0.5) * 40,
-                (Math.random() - 0.5) * 4,
-                (Math.random() - 0.5) * 4,
-                '#00ffcc',
-                30
-            );
-            game.particles.push(particle);
+        if (gameState.settings.particleEffects) {
+            for (let i = 0; i < 20; i++) {
+                const particle = new Particle(
+                    this.x + (Math.random() - 0.5) * 40,
+                    this.y + (Math.random() - 0.5) * 40,
+                    (Math.random() - 0.5) * 4,
+                    (Math.random() - 0.5) * 4,
+                    '#00ffcc',
+                    30
+                );
+                game.particles.push(particle);
+            }
         }
         
         // 显示升级文本
@@ -478,29 +646,31 @@ class Enemy {
     }
 
     createDeathEffect() {
-        for (let i = 0; i < 10; i++) {
-            const particle = new Particle(
-                this.x + (Math.random() - 0.5) * 20,
-                this.y + (Math.random() - 0.5) * 20,
-                (Math.random() - 0.5) * 6,
-                (Math.random() - 0.5) * 6,
-                this.color,
-                20
-            );
-            game.particles.push(particle);
-        }
-        
-        // 添加蓝色爆炸效果
-        for (let i = 0; i < 5; i++) {
-            const particle = new Particle(
-                this.x + (Math.random() - 0.5) * 15,
-                this.y + (Math.random() - 0.5) * 15,
-                (Math.random() - 0.5) * 8,
-                (Math.random() - 0.5) * 8,
-                '#0096ff',
-                25
-            );
-            game.particles.push(particle);
+        if (gameState.settings.particleEffects) {
+            for (let i = 0; i < 10; i++) {
+                const particle = new Particle(
+                    this.x + (Math.random() - 0.5) * 20,
+                    this.y + (Math.random() - 0.5) * 20,
+                    (Math.random() - 0.5) * 6,
+                    (Math.random() - 0.5) * 6,
+                    this.color,
+                    20
+                );
+                game.particles.push(particle);
+            }
+            
+            // 添加蓝色爆炸效果
+            for (let i = 0; i < 5; i++) {
+                const particle = new Particle(
+                    this.x + (Math.random() - 0.5) * 15,
+                    this.y + (Math.random() - 0.5) * 15,
+                    (Math.random() - 0.5) * 8,
+                    (Math.random() - 0.5) * 8,
+                    '#0096ff',
+                    25
+                );
+                game.particles.push(particle);
+            }
         }
     }
 
@@ -644,52 +814,64 @@ class Item {
     }
 
     applyEffect() {
+        let message = '';
         switch (this.type) {
             case 'attack':
                 game.player.attack += this.value;
+                message = `⚔️ 攻击力 +${Math.round(this.value)}`;
                 break;
             case 'speed':
                 game.player.speed += this.value;
+                message = `💨 移速 +${this.value.toFixed(1)}`;
                 break;
             case 'range':
                 game.player.range += this.value;
+                message = `🎯 射程 +${Math.round(this.value)}`;
                 break;
             case 'heal':
+                const healAmount = Math.min(game.player.maxHp - game.player.hp, this.value);
                 game.player.hp = Math.min(game.player.maxHp, game.player.hp + this.value);
+                message = `❤️ 治疗 +${Math.round(healAmount)}`;
                 break;
             case 'attackSpeed':
                 game.player.attackSpeed += this.value;
+                message = `🏹 攻速 +${this.value.toFixed(1)}`;
                 break;
         }
+        
+        // 显示拾取通知
+        showNotification(message, 2000);
         
         // 创建拾取特效
         this.createPickupEffect();
     }
 
     createPickupEffect() {
-        for (let i = 0; i < 8; i++) {
-            const particle = new Particle(
-                this.x + (Math.random() - 0.5) * 20,
-                this.y + (Math.random() - 0.5) * 20,
-                (Math.random() - 0.5) * 4,
-                (Math.random() - 0.5) * 4,
-                this.color,
-                25
-            );
-            game.particles.push(particle);
-        }
-        
-        // 添加白色闪光效果
-        for (let i = 0; i < 3; i++) {
-            const particle = new Particle(
-                this.x + (Math.random() - 0.5) * 10,
-                this.y + (Math.random() - 0.5) * 10,
-                (Math.random() - 0.5) * 2,
-                (Math.random() - 0.5) * 2,
-                '#ffffff',
-                15
-            );
-            game.particles.push(particle);
+        if (gameState.settings.particleEffects) {
+            for (let i = 0; i < 8; i++) {
+                const particle = new Particle(
+                    this.x + (Math.random() - 0.5) * 20,
+                    this.y + (Math.random() - 0.5) * 20,
+                    (Math.random() - 0.5) * 4,
+                    (Math.random() - 0.5) * 4,
+                    this.color,
+                    25
+                );
+                game.particles.push(particle);
+            }
+            
+            // 添加白色闪光效果
+            for (let i = 0; i < 3; i++) {
+                const particle = new Particle(
+                    this.x + (Math.random() - 0.5) * 10,
+                    this.y + (Math.random() - 0.5) * 10,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    '#ffffff',
+                    15
+                );
+                game.particles.push(particle);
+            }
         }
     }
 
@@ -838,13 +1020,29 @@ function updateUI() {
     document.getElementById('level').textContent = game.player.level;
     document.getElementById('exp').textContent = game.player.exp;
     document.getElementById('expMax').textContent = game.player.expToNext;
-    document.getElementById('hp').textContent = game.player.hp;
+    document.getElementById('hp').textContent = Math.round(game.player.hp);
     document.getElementById('maxHp').textContent = game.player.maxHp;
     document.getElementById('attack').textContent = Math.round(game.player.attack);
     document.getElementById('attackSpeed').textContent = game.player.attackSpeed.toFixed(1);
     document.getElementById('range').textContent = Math.round(game.player.range);
     document.getElementById('kills').textContent = game.kills;
     document.getElementById('time').textContent = Math.floor(game.gameTime / 1000);
+    
+    // 更新右侧UI
+    document.getElementById('enemyCount').textContent = game.enemies.length;
+    document.getElementById('waveNumber').textContent = gameState.wave;
+    
+    const now = Date.now();
+    const timeInWave = now - gameState.lastWaveTime;
+    const timeToNextWave = Math.max(0, (gameState.nextWaveTime - timeInWave) / 1000);
+    document.getElementById('nextWave').textContent = Math.ceil(timeToNextWave);
+    
+    // 更新性能监控
+    if (gameState.settings.showFPS) {
+        document.getElementById('fps').textContent = gameState.performance.fps;
+        const objectCount = game.enemies.length + game.arrows.length + game.items.length + game.particles.length;
+        document.getElementById('objectCount').textContent = objectCount;
+    }
     
     // 更新进度条
     const hpPercent = (game.player.hp / game.player.maxHp) * 100;
@@ -856,6 +1054,17 @@ function updateUI() {
     // 更新暂停按钮文本
     const pauseBtn = document.getElementById('pauseBtn');
     pauseBtn.textContent = gameState.isPaused ? '继续' : '暂停';
+    
+    // 更新准星位置
+    if (gameState.settings.showCrosshair && input.mouse.x && input.mouse.y) {
+        const crosshair = document.getElementById('crosshair');
+        const rect = canvas.getBoundingClientRect();
+        crosshair.style.left = (input.mouse.x - rect.left - 10) + 'px';
+        crosshair.style.top = (input.mouse.y - rect.top - 10) + 'px';
+        crosshair.style.display = 'block';
+    } else {
+        document.getElementById('crosshair').style.display = 'none';
+    }
 }
 
 // 游戏主循环
@@ -876,6 +1085,12 @@ function gameLoop() {
     
     // 更新屏幕震动
     updateShake();
+    
+    // 更新性能监控
+    updatePerformance();
+    
+    // 更新波次系统
+    updateWave();
     
     // 更新游戏对象
     game.player.update();
@@ -923,6 +1138,9 @@ function gameLoop() {
     
     // 绘制游戏
     drawGame();
+    
+    // 更新小地图
+    updateMinimap();
     
     // 更新UI
     updateUI();
@@ -986,8 +1204,19 @@ function initGame() {
     gameState.startTime = Date.now();
     gameState.lastUpdateTime = Date.now();
     gameState.shake = { x: 0, y: 0, intensity: 0, duration: 0 };
+    gameState.wave = 1;
+    gameState.lastWaveTime = Date.now();
+    gameState.performance = {
+        fps: 60,
+        frameCount: 0,
+        lastFPSUpdate: Date.now()
+    };
     
     document.getElementById('gameOver').style.display = 'none';
+    document.getElementById('upgradeChoice').style.display = 'none';
+    document.getElementById('settingsPanel').style.display = 'none';
+    
+    showNotification('🎮 游戏开始！', 2000);
 }
 
 // 显示游戏结束界面
@@ -995,7 +1224,12 @@ function showGameOver() {
     document.getElementById('finalKills').textContent = game.kills;
     document.getElementById('finalTime').textContent = Math.floor(game.gameTime / 1000);
     document.getElementById('finalLevel').textContent = game.player.level;
+    document.getElementById('finalWave').textContent = gameState.wave;
     document.getElementById('gameOver').style.display = 'block';
+    
+    // 隐藏其他面板
+    document.getElementById('upgradeChoice').style.display = 'none';
+    document.getElementById('settingsPanel').style.display = 'none';
 }
 
 // 暂停/继续游戏
@@ -1010,7 +1244,34 @@ document.addEventListener('keydown', (e) => {
     // 空格键暂停/继续
     if (e.code === 'Space') {
         e.preventDefault();
-        togglePause();
+        if (document.getElementById('upgradeChoice').style.display === 'none' && 
+            document.getElementById('settingsPanel').style.display === 'none') {
+            togglePause();
+        }
+    }
+    
+    // ESC键打开/关闭设置
+    if (e.code === 'Escape') {
+        e.preventDefault();
+        if (document.getElementById('upgradeChoice').style.display === 'none') {
+            toggleSettings();
+        }
+    }
+    
+    // M键切换小地图
+    if (e.code === 'KeyM') {
+        e.preventDefault();
+        gameState.settings.showMinimap = !gameState.settings.showMinimap;
+        document.getElementById('rightUI').querySelector('.minimap').style.display = 
+            gameState.settings.showMinimap ? 'block' : 'none';
+        showNotification(`小地图: ${gameState.settings.showMinimap ? '开启' : '关闭'}`, 1500);
+    }
+    
+    // C键切换准星
+    if (e.code === 'KeyC') {
+        e.preventDefault();
+        gameState.settings.showCrosshair = !gameState.settings.showCrosshair;
+        showNotification(`准星: ${gameState.settings.showCrosshair ? '开启' : '关闭'}`, 1500);
     }
 });
 
@@ -1027,6 +1288,43 @@ canvas.addEventListener('mousemove', (e) => {
 // 暂停按钮
 document.getElementById('pauseBtn').addEventListener('click', togglePause);
 
+// 设置按钮
+document.getElementById('settingsBtn').addEventListener('click', toggleSettings);
+
+// 设置面板事件
+document.getElementById('closeSettings').addEventListener('click', () => {
+    document.getElementById('settingsPanel').style.display = 'none';
+    gameState.isPaused = false;
+});
+
+// 设置选项事件
+document.getElementById('showFPS').addEventListener('click', (e) => {
+    gameState.settings.showFPS = !gameState.settings.showFPS;
+    e.target.textContent = gameState.settings.showFPS ? '开启' : '关闭';
+    document.querySelector('.performance-monitor').style.display = 
+        gameState.settings.showFPS ? 'block' : 'none';
+});
+
+document.getElementById('particleEffects').addEventListener('click', (e) => {
+    gameState.settings.particleEffects = !gameState.settings.particleEffects;
+    e.target.textContent = gameState.settings.particleEffects ? '开启' : '关闭';
+});
+
+document.getElementById('screenShake').addEventListener('click', (e) => {
+    gameState.settings.screenShake = !gameState.settings.screenShake;
+    e.target.textContent = gameState.settings.screenShake ? '开启' : '关闭';
+});
+
+document.getElementById('quality').addEventListener('change', (e) => {
+    gameState.settings.quality = e.target.value;
+    // 可以根据画质设置调整渲染质量
+});
+
+document.getElementById('soundVolume').addEventListener('input', (e) => {
+    gameState.settings.soundVolume = e.target.value;
+    // 音量控制逻辑
+});
+
 // 重新开始按钮
 document.getElementById('restartBtn').addEventListener('click', () => {
     initGame();
@@ -1036,6 +1334,11 @@ document.getElementById('restartBtn').addEventListener('click', () => {
 // 防止右键菜单
 canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
+});
+
+// 窗口大小改变事件
+window.addEventListener('resize', () => {
+    // 可以添加响应式调整逻辑
 });
 
 // 开始游戏
