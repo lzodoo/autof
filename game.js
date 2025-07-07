@@ -198,22 +198,22 @@ function showUpgradeChoice() {
     
     const upgrades = [
         {
-            name: '⚔️ 攻击力',
+            name: '🔥 火力强化',
             desc: '+5 攻击力',
             apply: () => game.player.attack += 5
         },
         {
-            name: '🏹 攻击速度',
+            name: '⚡ 开火速度',
             desc: '+0.2 攻速',
             apply: () => game.player.attackSpeed += 0.2
         },
         {
-            name: '🎯 射程',
+            name: '🎯 炮弹射程',
             desc: '+20 射程',
             apply: () => game.player.range += 20
         },
         {
-            name: '❤️ 生命值',
+            name: '🛡️ 装甲强化',
             desc: '+20 最大生命值',
             apply: () => {
                 game.player.maxHp += 20;
@@ -221,7 +221,7 @@ function showUpgradeChoice() {
             }
         },
         {
-            name: '💨 移动速度',
+            name: '⚡ 机动性',
             desc: '+0.5 移速',
             apply: () => game.player.speed += 0.5
         }
@@ -430,7 +430,7 @@ class Player {
         ctx.fill();
         ctx.globalAlpha = 1;
         
-        // 绘制玩家光环
+        // 绘制坦克光环
         const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size + 15);
         gradient.addColorStop(0, 'rgba(0, 150, 255, 0.8)');
         gradient.addColorStop(0.5, 'rgba(0, 200, 255, 0.4)');
@@ -440,52 +440,121 @@ class Player {
         ctx.arc(this.x, this.y, this.size + 15, 0, Math.PI * 2);
         ctx.fill();
         
-        // 绘制玩家主体
+        // 坦克履带阴影
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(this.x - this.size * 0.7 + 2, this.y - this.size * 0.9 + 2, this.size * 1.4, this.size * 1.8);
+        ctx.globalAlpha = 1;
+        
+        // 绘制坦克履带
+        ctx.fillStyle = '#333';
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 1;
+        ctx.fillRect(this.x - this.size * 0.7, this.y - this.size * 0.9, this.size * 1.4, this.size * 1.8);
+        ctx.strokeRect(this.x - this.size * 0.7, this.y - this.size * 0.9, this.size * 1.4, this.size * 1.8);
+        
+        // 履带细节
+        ctx.fillStyle = '#444';
+        for (let i = 0; i < 4; i++) {
+            let trackY = this.y - this.size * 0.6 + i * this.size * 0.4;
+            ctx.fillRect(this.x - this.size * 0.65, trackY, this.size * 1.3, 2);
+        }
+        
+        // 绘制坦克主体（车身）
         ctx.fillStyle = this.color;
         ctx.strokeStyle = '#0066cc';
         ctx.lineWidth = 2;
         ctx.shadowColor = this.color;
         ctx.shadowBlur = 15;
         
-        // 绘制玩家（弓箭手）
-        ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
-        ctx.strokeRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+        ctx.fillRect(this.x - this.size * 0.6, this.y - this.size * 0.6, this.size * 1.2, this.size * 1.2);
+        ctx.strokeRect(this.x - this.size * 0.6, this.y - this.size * 0.6, this.size * 1.2, this.size * 1.2);
         
-        // 绘制能量弓
-        ctx.strokeStyle = '#00ffcc';
-        ctx.lineWidth = 3;
-        ctx.shadowColor = '#00ffcc';
-        ctx.shadowBlur = 10;
+        // 绘制炮塔
+        ctx.fillStyle = '#0088ff';
+        ctx.strokeStyle = '#0066cc';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size + 5, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.size * 0.4, 0, Math.PI * 2);
+        ctx.fill();
         ctx.stroke();
         
-        // 绘制能量核心
+        // 绘制炮管（指向最近的敌人）
+        ctx.strokeStyle = '#00ffcc';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = '#00ffcc';
+        ctx.shadowBlur = 10;
+        
+        // 计算炮管方向
+        let barrelAngle = 0;
+        if (game.enemies.length > 0) {
+            let closestEnemy = null;
+            let closestDistance = this.range;
+            for (let enemy of game.enemies) {
+                const distance = Math.sqrt(
+                    Math.pow(enemy.x - this.x, 2) + Math.pow(enemy.y - this.y, 2)
+                );
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestEnemy = enemy;
+                }
+            }
+            if (closestEnemy) {
+                barrelAngle = Math.atan2(closestEnemy.y - this.y, closestEnemy.x - this.x);
+            }
+        }
+        
+        const barrelLength = this.size * 0.8;
+        const barrelEndX = this.x + Math.cos(barrelAngle) * barrelLength;
+        const barrelEndY = this.y + Math.sin(barrelAngle) * barrelLength;
+        
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(barrelEndX, barrelEndY);
+        ctx.stroke();
+        
+        // 炮口特效
         ctx.fillStyle = '#00ffcc';
         ctx.shadowBlur = 15;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+        ctx.arc(barrelEndX, barrelEndY, 2, 0, Math.PI * 2);
         ctx.fill();
         
-        // 绘制眼睛
+        // 绘制坦克标识（五角星）
         ctx.fillStyle = '#00d4ff';
         ctx.shadowBlur = 8;
-        ctx.fillRect(this.x - 3, this.y - 3, 2, 2);
-        ctx.fillRect(this.x + 1, this.y - 3, 2, 2);
+        this.drawStar(this.x, this.y - this.size * 0.2, 4);
         
         ctx.restore();
     }
+    
+    drawStar(x, y, radius) {
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+            const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+            const starX = x + Math.cos(angle) * radius;
+            const starY = y + Math.sin(angle) * radius;
+            if (i === 0) {
+                ctx.moveTo(starX, starY);
+            } else {
+                ctx.lineTo(starX, starY);
+            }
+        }
+        ctx.closePath();
+        ctx.fill();
+    }
 }
 
-// 弓箭类
+// 炮弹类
 class Arrow {
     constructor(x, y, targetX, targetY, damage) {
         this.x = x;
         this.y = y;
         this.damage = damage;
         this.speed = 8;
-        this.size = 3;
+        this.size = 4;
         this.color = '#00ffcc';
+        this.trail = []; // 炮弹尾迹
         
         // 计算方向
         const dx = targetX - x;
@@ -496,9 +565,16 @@ class Arrow {
         this.vy = (dy / distance) * this.speed;
         
         this.life = 100; // 生命周期
+        this.angle = Math.atan2(dy, dx); // 炮弹旋转角度
     }
 
     update() {
+        // 添加到尾迹
+        this.trail.push({ x: this.x, y: this.y });
+        if (this.trail.length > 6) {
+            this.trail.shift();
+        }
+        
         this.x += this.vx;
         this.y += this.vy;
         this.life--;
@@ -514,62 +590,95 @@ class Arrow {
     draw() {
         ctx.save();
         
-        // 绘制能量轨迹
-        ctx.strokeStyle = 'rgba(0, 255, 204, 0.6)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(this.x - this.vx * 5, this.y - this.vy * 5);
-        ctx.lineTo(this.x, this.y);
-        ctx.stroke();
+        // 绘制炮弹尾迹
+        if (gameState.settings.particleEffects && this.trail.length > 1) {
+            for (let i = 0; i < this.trail.length - 1; i++) {
+                const alpha = (i + 1) / this.trail.length * 0.7;
+                const size = (i + 1) / this.trail.length * 4;
+                
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = this.color;
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 6;
+                
+                ctx.beginPath();
+                ctx.arc(this.trail[i].x, this.trail[i].y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
         
-        // 绘制能量光晕
-        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 8);
+        // 绘制炮弹光晕
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 10);
         gradient.addColorStop(0, 'rgba(0, 255, 204, 0.8)');
         gradient.addColorStop(0.5, 'rgba(0, 150, 255, 0.4)');
         gradient.addColorStop(1, 'rgba(0, 255, 204, 0)');
         ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, 10, 0, Math.PI * 2);
         ctx.fill();
         
-        // 绘制能量箭头
+        // 绘制炮弹主体
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        
+        // 炮弹外壳
+        ctx.fillStyle = '#666666';
+        ctx.strokeStyle = '#444444';
+        ctx.lineWidth = 1;
+        ctx.fillRect(-this.size * 1.5, -this.size/2, this.size * 3, this.size);
+        ctx.strokeRect(-this.size * 1.5, -this.size/2, this.size * 3, this.size);
+        
+        // 炮弹头部（尖头）
         ctx.fillStyle = this.color;
-        ctx.strokeStyle = '#0096ff';
+        ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1;
         ctx.shadowColor = this.color;
         ctx.shadowBlur = 10;
         
-        // 绘制箭头
-        const angle = Math.atan2(this.vy, this.vx);
-        ctx.translate(this.x, this.y);
-        ctx.rotate(angle);
-        
-        // 能量箭身
-        ctx.fillRect(-8, -1, 16, 2);
-        // 能量箭头
         ctx.beginPath();
-        ctx.moveTo(8, 0);
-        ctx.lineTo(4, -3);
-        ctx.lineTo(4, 3);
+        ctx.moveTo(this.size * 1.5, 0);
+        ctx.lineTo(this.size * 0.5, -this.size/2);
+        ctx.lineTo(this.size * 0.5, this.size/2);
         ctx.closePath();
         ctx.fill();
-        
-        // 能量尾翼
-        ctx.strokeStyle = '#00ffcc';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(-8, -2);
-        ctx.lineTo(-6, -3);
-        ctx.moveTo(-8, 2);
-        ctx.lineTo(-6, 3);
         ctx.stroke();
         
-        // 绘制能量核心
+        // 炮弹能量核心
         ctx.fillStyle = '#ffffff';
         ctx.shadowBlur = 15;
         ctx.beginPath();
-        ctx.arc(0, 0, 1, 0, Math.PI * 2);
+        ctx.arc(0, 0, this.size/3, 0, Math.PI * 2);
         ctx.fill();
+        
+        // 炮弹尾部喷射火焰
+        if (gameState.settings.particleEffects) {
+            ctx.globalAlpha = 0.8;
+            const flameGradient = ctx.createLinearGradient(-this.size * 1.5, 0, -this.size * 2.5, 0);
+            flameGradient.addColorStop(0, '#ffaa00');
+            flameGradient.addColorStop(0.5, '#ff6600');
+            flameGradient.addColorStop(1, '#ff3300');
+            
+            ctx.fillStyle = flameGradient;
+            ctx.shadowColor = '#ff6600';
+            ctx.shadowBlur = 12;
+            
+            // 火焰形状
+            ctx.beginPath();
+            ctx.moveTo(-this.size * 1.5, 0);
+            ctx.lineTo(-this.size * 2, -this.size/3);
+            ctx.lineTo(-this.size * 2.5, 0);
+            ctx.lineTo(-this.size * 2, this.size/3);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 额外的火花
+            ctx.fillStyle = '#ffff00';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(-this.size * 2.2, 0, this.size/6, 0, Math.PI * 2);
+            ctx.fill();
+        }
         
         ctx.restore();
     }
@@ -677,15 +786,13 @@ class Enemy {
     draw() {
         ctx.save();
         
-        // 绘制敌人阴影
+        // 绘制敌方坦克阴影
         ctx.globalAlpha = 0.3;
         ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.arc(this.x + 2, this.y + 2, this.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(this.x - this.size * 0.7 + 2, this.y - this.size * 0.9 + 2, this.size * 1.4, this.size * 1.8);
         ctx.globalAlpha = 1;
         
-        // 绘制敌人光环
+        // 绘制敌方坦克光环
         const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size + 5);
         gradient.addColorStop(0, this.color + '80');
         gradient.addColorStop(1, this.color + '00');
@@ -694,25 +801,74 @@ class Enemy {
         ctx.arc(this.x, this.y, this.size + 5, 0, Math.PI * 2);
         ctx.fill();
         
-        // 绘制敌人主体
+        // 绘制敌方坦克履带
+        ctx.fillStyle = '#660000';
+        ctx.strokeStyle = '#880000';
+        ctx.lineWidth = 1;
+        ctx.fillRect(this.x - this.size * 0.7, this.y - this.size * 0.9, this.size * 1.4, this.size * 1.8);
+        ctx.strokeRect(this.x - this.size * 0.7, this.y - this.size * 0.9, this.size * 1.4, this.size * 1.8);
+        
+        // 敌方履带细节
+        ctx.fillStyle = '#770000';
+        for (let i = 0; i < 4; i++) {
+            let trackY = this.y - this.size * 0.6 + i * this.size * 0.4;
+            ctx.fillRect(this.x - this.size * 0.65, trackY, this.size * 1.3, 2);
+        }
+        
+        // 绘制敌方坦克主体（车身）
         ctx.fillStyle = this.color;
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.shadowColor = this.color;
         ctx.shadowBlur = 8;
         
-        // 绘制敌人
+        ctx.fillRect(this.x - this.size * 0.6, this.y - this.size * 0.6, this.size * 1.2, this.size * 1.2);
+        ctx.strokeRect(this.x - this.size * 0.6, this.y - this.size * 0.6, this.size * 1.2, this.size * 1.2);
+        
+        // 绘制敌方炮塔
+        ctx.fillStyle = '#aa0000';
+        ctx.strokeStyle = '#660000';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.size * 0.4, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
         
-        // 绘制敌人特征（眼睛）
-        ctx.fillStyle = '#ff0000';
+        // 绘制敌方炮管（指向玩家）
+        ctx.strokeStyle = '#ff4444';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#ff4444';
+        ctx.shadowBlur = 8;
+        
+        // 计算炮管方向（指向玩家）
+        const barrelAngle = Math.atan2(game.player.y - this.y, game.player.x - this.x);
+        const barrelLength = this.size * 0.7;
+        const barrelEndX = this.x + Math.cos(barrelAngle) * barrelLength;
+        const barrelEndY = this.y + Math.sin(barrelAngle) * barrelLength;
+        
         ctx.beginPath();
-        ctx.arc(this.x - this.size/3, this.y - this.size/3, 2, 0, Math.PI * 2);
-        ctx.arc(this.x + this.size/3, this.y - this.size/3, 2, 0, Math.PI * 2);
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(barrelEndX, barrelEndY);
+        ctx.stroke();
+        
+        // 敌方炮口特效
+        ctx.fillStyle = '#ff4444';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(barrelEndX, barrelEndY, 2, 0, Math.PI * 2);
         ctx.fill();
+        
+        // 绘制敌方标识（叉号）
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 8;
+        const markSize = 3;
+        ctx.beginPath();
+        ctx.moveTo(this.x - markSize, this.y - this.size * 0.2 - markSize);
+        ctx.lineTo(this.x + markSize, this.y - this.size * 0.2 + markSize);
+        ctx.moveTo(this.x + markSize, this.y - this.size * 0.2 - markSize);
+        ctx.lineTo(this.x - markSize, this.y - this.size * 0.2 + markSize);
+        ctx.stroke();
         
         // 绘制血条背景
         const barWidth = this.size * 2;
@@ -769,27 +925,27 @@ class Item {
         switch (this.type) {
             case 'attack':
                 this.color = '#0096ff';
-                this.name = '攻击力';
+                this.name = '火力强化';
                 this.value = 3 + Math.random() * 5;
                 break;
             case 'speed':
                 this.color = '#00ccff';
-                this.name = '移速';
+                this.name = '机动性';
                 this.value = 0.3 + Math.random() * 0.5;
                 break;
             case 'range':
                 this.color = '#00ffcc';
-                this.name = '射程';
+                this.name = '炮弹射程';
                 this.value = 15 + Math.random() * 20;
                 break;
             case 'heal':
                 this.color = '#0088ff';
-                this.name = '治疗';
+                this.name = '装甲修复';
                 this.value = 20 + Math.random() * 30;
                 break;
             case 'attackSpeed':
                 this.color = '#44ddff';
-                this.name = '攻速';
+                this.name = '开火速度';
                 this.value = 0.1 + Math.random() * 0.2;
                 break;
         }
@@ -818,24 +974,24 @@ class Item {
         switch (this.type) {
             case 'attack':
                 game.player.attack += this.value;
-                message = `⚔️ 攻击力 +${Math.round(this.value)}`;
+                message = `🔥 火力强化 +${Math.round(this.value)}`;
                 break;
             case 'speed':
                 game.player.speed += this.value;
-                message = `💨 移速 +${this.value.toFixed(1)}`;
+                message = `⚡ 机动性 +${this.value.toFixed(1)}`;
                 break;
             case 'range':
                 game.player.range += this.value;
-                message = `🎯 射程 +${Math.round(this.value)}`;
+                message = `🎯 射程强化 +${Math.round(this.value)}`;
                 break;
             case 'heal':
                 const healAmount = Math.min(game.player.maxHp - game.player.hp, this.value);
                 game.player.hp = Math.min(game.player.maxHp, game.player.hp + this.value);
-                message = `❤️ 治疗 +${Math.round(healAmount)}`;
+                message = `🛡️ 装甲修复 +${Math.round(healAmount)}`;
                 break;
             case 'attackSpeed':
                 game.player.attackSpeed += this.value;
-                message = `🏹 攻速 +${this.value.toFixed(1)}`;
+                message = `🔥 开火速度 +${this.value.toFixed(1)}`;
                 break;
         }
         
